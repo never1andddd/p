@@ -16,6 +16,7 @@ library(jsonlite)
 library(stringr)
 library(forcats)
 library(viridis)
+library(tidytext)
 ## Loading required package: viridisLite
 
 library(plotly)
@@ -25,8 +26,15 @@ library(plotly)
 ```{r}
 business <- stream_in(file("../data/business.json"))
 
-rest.dat = business %>%
-  select(-attributes,-hours) %>%
+# specificly we are only interested in the covariate price in the attributes
+price = select(business$attributes,RestaurantsPriceRange2)
+
+business_no_attri = select(business,-attributes,-hours)
+
+business.dat = bind_cols(business_no_attri,price)
+
+# for simplicity, we focus on restaurants in state of Arizona(AZ)
+rest.dat = business.dat %>%
   mutate(categories = as.character(categories)) %>%
   filter(str_detect(categories, "Restaurants")) %>%
   filter(state == "AZ") 
@@ -34,36 +42,100 @@ rest.dat = business %>%
 # review <- stream_in(file("../data/review.json"))
 ```
 
+# explore the categories of restaurants
+## a rough preview of data
 ```{r}
-rest.dat %>%
-  mutate(text_label = str_c("Postal code: ", postal_code, '\nAddress: ', address, '\nName:',name)) %>% 
+cate.dat = rest.dat %>%
+  mutate(categories = str_replace(categories,"c\\(","")) %>%
+  unnest_tokens(category, categories) %>%
+  select(-neighborhood)
+
+# get an overview of categories
+cate.dat %>%
+  count(category, sort = TRUE) %>%
+  top_n(50)%>%
+  mutate(category = fct_reorder(category, n)) %>% 
+  ggplot(aes(x = category, y = n)) + 
+  geom_bar(stat = "identity", fill = "blue", alpha = .6) + 
+  coord_flip()
+```
+ We notice that:
+ 1. 'Restaurants', 'food', 'sports' gives no further information of what a restaurant serves. Therefore, we need to remove them.  
+ 2. Category 'american new' and 'american traditional' are devided into 3 categories namely 'american',
+'new' and 'traditional'. This is redundant and we need to remove 'american' from this dataset.  
+ 3. Category 'chicken wings' is devided into 2 categories namely 'chicken' and 'wings'. This is redundant and we need to remove 'chicken' from this dataset. This is same for 'breakfast & brunch' and 'coffee & tea'. We will remove 'brunch' and 'tea' for simplicity.
+ 4. Category 'bar' and 'nightlife' are somewhat overlaid. Therefore, we remove 'night life'.  
+ 5. Category 'Event Planning & Services' is devided into 3 categories namely 'event', 'planning' and 'services'. These categories gives no further information of what a restaurant serves. Therefore, we need to remove them.  
+ 6. 
+
+## data clean of category
+```{r}
+category <- c('restaurants','food','american','chicken','nightlife','services','planning','event','sports','brunch','tea')
+stop_cates = data.frame(category) %>%
+  mutate(category = as.character(category))
+
+cate.dat = 
+  anti_join(cate.dat, stop_cates)
+  
+categories = cate.dat %>%
+  count(category, sort = TRUE) %>%
+# omit categories with few restaurants, this is a trade-off because we might lose some restaurant, but we will get rid of some noise too
+  top_n(20)
+
+# get an overview of categories
+categories %>%
+  mutate(category = fct_reorder(category, n)) %>% 
+  ggplot(aes(x = category, y = n)) + 
+  geom_bar(stat = "identity", fill = "blue", alpha = .6) + 
+  coord_flip()
+
+
+# there are some variables that seem to make no sense like 'fast', 'traditional' and 'new'. explanation: 
+final.dat = inner_join(categories,cate.dat) %>%
+  unique() %>%
+  distinct(name)
+
+```
+
+# a map of restaurant 
+```{r}
+final.dat %>%
+  mutate(text_label = str_c('Name:',name,"\nPostal code: ", postal_code, '\nAddress: ', address, '\nCategory: ', category)) %>% 
   plot_ly(x = ~longitude, y = ~latitude, type = "scatter", mode = "markers",
           alpha = 0.5, 
-          color = ~city,
+          color = ~category,
           text = ~text_label)
 
 ```
 
 ```{r}
-common_city =
-  rest.dat %>% 
-  count(city, sort = TRUE) %>% 
+# We’re going to show only 10 categories with the most restaurants
+common_category =
+  final.dat %>% 
+  count(category, sort = TRUE) %>% 
   top_n(10) %>% 
-  select(city)
+  select(category)
 ## Selecting by n
 
-inner_join(rest.dat, common_city,
-             by = "city") %>% 
-  mutate(city = fct_reorder(city, review_count)) %>% 
-  plot_ly(y = ~review_count, color = ~city, type = "box",
+inner_join(final.dat, common_category,
+             by = "category") %>% 
+  mutate(category = fct_reorder(category, review_count)) %>% 
+  plot_ly(y = ~review_count, color = ~category, type = "box",
           colors = "Set2")
+
 ```
 
 ```{r}
-rest.dat %>% 
-  count(city) %>% 
-  mutate(city = fct_reorder(city, n)) %>% 
-  plot_ly(x = ~city, y = ~n, color = ~city, type = "bar")
+final.dat %>% 
+  mutate(category = fct_reorder(category, n)) %>% 
+  plot_ly(x = ~category, y = ~n, color = ~category, type = "bar")
+```
+
+```{r}
+inner_join(final.dat, common_category,
+             by = "category") %>% 
+  mutate(category = fct_reorder(category, n)) %>% 
+  plot_ly(x = ~category, y = ~n, color = ~category, type = "bar")
 
 ```
 
