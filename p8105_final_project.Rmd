@@ -91,7 +91,8 @@ categories %>%
 
 
 # there are some variables that seem to make no sense like 'fast', 'traditional' and 'new'. explanation: 
-final.dat = inner_join(categories,cate.dat) %>%
+final.dat = inner_join(categories,cate.dat) 
+final.dat%>%
   unique() %>%
   distinct(name)
 
