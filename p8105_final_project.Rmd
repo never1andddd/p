@@ -140,4 +140,25 @@ inner_join(final.dat, common_category,
 
 ```
 
+```{r bubble plot}
+#A grid of detailed average ratings by categories
+#Basically, the average review rating scores in each state was reclassified from 1.0 to 5.0 by 0.5 increase. For visualization purpose, percentage of rating score is weighted.
+dataWeighted_catestar <- final.dat %>% 
+  group_by(category,stars) %>%
+  summarise(totalByStar = n()) %>% arrange(desc(stars)) %>% 
+  mutate(total = sum(totalByStar)) %>% mutate(percent = round((totalByStar / total)*100, 1)) %>%
+  mutate(percentWeight = ifelse(percent >= 20, percent * 1.5, # custom column to weight the percent for size on the plot
+                                ifelse(percent < 20 & percent >= 15, percent * 1, 
+                                       ifelse(percent < 15 & percent >= 10, percent,
+                                              ifelse(percent < 10 & percent >= 5, percent * 0.6, 1)))))
 
+
+  library(ggplot2)
+ggplot(dataWeighted_catestar, aes(x = category, y = stars, label = percent)) + 
+    geom_point(aes(size = percentWeight * 0.8, colour = stars, alpha = 0.05)) + 
+    geom_text(hjust = 0.4, size = 4) + scale_size(range = c(1, 30), guide = "none") + 
+    scale_color_gradient(low = "darkblue", high = "red") + labs(title = "A grid of detailed avg.ratings by city ", 
+    x = "City", y = "Detailed Avg.Ratings") + scale_y_continuous(breaks = seq(1, 
+    5, 0.5)) + theme(legend.title = element_blank())
+ggplotly(bubble) #plotly seems kinda useless
+```
