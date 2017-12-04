@@ -66,11 +66,11 @@ cate.dat %>%
  3. Category 'chicken wings' is devided into 2 categories namely 'chicken' and 'wings'. This is redundant and we need to remove 'chicken' from this dataset. This is same for 'breakfast & brunch' and 'coffee & tea'. We will remove 'brunch' and 'tea' for simplicity.
  4. Category 'bar' and 'nightlife' are somewhat overlaid. Therefore, we remove 'night life'.  
  5. Category 'Event Planning & Services' is devided into 3 categories namely 'event', 'planning' and 'services'. These categories gives no further information of what a restaurant serves. Therefore, we need to remove them.  
- 6. 
+ 6. 'Bars','fast food' do not give further information of what a restaurant serves and cause a restaurant to have multiple categories, hence are removed. 
 
 ## data clean of category
 ```{r}
-category <- c('restaurants','food','american','chicken','nightlife','services','planning','event','sports','brunch','tea')
+category <- c('restaurants','food','american','chicken','nightlife','services','planning','event','sports','brunch','tea','bars','fast')
 stop_cates = data.frame(category) %>%
   mutate(category = as.character(category))
 
@@ -80,7 +80,7 @@ cate.dat =
 categories = cate.dat %>%
   count(category, sort = TRUE) %>%
 # omit categories with few restaurants, this is a trade-off because we might lose some restaurant, but we will get rid of some noise too
-  top_n(20)
+  top_n(10)
 
 # get an overview of categories
 categories %>%
@@ -94,7 +94,10 @@ categories %>%
 final.dat = inner_join(categories,cate.dat) 
 final.dat%>%
   unique() %>%
-  distinct(name)
+  distinct(business_id)
+
+# from this table we find there are many restaurants with multiple categories
+# write a loop to assign each restaurant a categorie that is of highest frequency?
 
 ```
 
