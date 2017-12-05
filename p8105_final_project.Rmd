@@ -17,6 +17,7 @@ library(stringr)
 library(forcats)
 library(viridis)
 library(tidytext)
+library(janitor)
 ## Loading required package: viridisLite
 
 library(plotly)
@@ -25,6 +26,7 @@ library(plotly)
 # Getting Data of Restaurant in business.json
 ```{r}
 business <- stream_in(file("../data/business.json"))
+
 
 # specificly we are only interested in the covariate price in the attributes
 price = select(business$attributes,RestaurantsPriceRange2)
@@ -92,7 +94,7 @@ categories %>%
 
 # there are some variables that seem to make no sense like 'fast', 'traditional' and 'new'. explanation: 
 final.dat = inner_join(categories,cate.dat) 
-final.dat%>%
+final.dat %>%
   unique() %>%
   distinct(business_id)
 
@@ -160,8 +162,49 @@ dataWeighted_catestar <- final.dat %>%
 ggplot(dataWeighted_catestar, aes(x = category, y = stars, label = percent)) + 
     geom_point(aes(size = percentWeight * 0.8, colour = stars, alpha = 0.05)) + 
     geom_text(hjust = 0.4, size = 4) + scale_size(range = c(1, 30), guide = "none") + 
-    scale_color_gradient(low = "darkblue", high = "red") + labs(title = "A grid of detailed avg.ratings by city ", 
+    scale_color_gradient(low = "darkblue", high = "red") + labs(title = "A grid of detailed avg.ratings by category ", 
+    x = "Category", y = "Detailed Avg.Ratings") + scale_y_continuous(breaks = seq(1, 
+    5, 0.5)) + theme(legend.title = element_blank())
+
+```
+
+```{r}
+city <- final.dat %>% 
+  group_by(city) %>% 
+  summarise(totalCity = n()) %>% 
+  top_n(10)
+dataWeighted_city <- left_join(city, final.dat) %>% 
+  group_by(city,stars) %>%
+  summarise(totalByStar = n()) %>% arrange(desc(stars)) %>% 
+  mutate(total = sum(totalByStar)) %>% mutate(percent = round((totalByStar / total)*100, 1)) %>%
+  mutate(percentWeight = ifelse(percent >= 20, percent * 1.5, # custom column to weight the percent for size on the plot
+                                ifelse(percent < 20 & percent >= 15, percent * 1, 
+                                       ifelse(percent < 15 & percent >= 10, percent,
+                                              ifelse(percent < 10 & percent >= 5, percent * 0.6, 1)))))
+
+
+ggplot(dataWeighted_city, aes(x = city, y = stars, label = percent)) + 
+    geom_point(aes(size = percentWeight * 0.8, colour = stars, alpha = 0.05)) + 
+    geom_text(hjust = 0.4, size = 4) + scale_size(range = c(1, 30), guide = "none") + 
+    scale_color_gradient(low = "blue", high = "green") + labs(title = "A grid of detailed avg.ratings by city ", 
     x = "City", y = "Detailed Avg.Ratings") + scale_y_continuous(breaks = seq(1, 
     5, 0.5)) + theme(legend.title = element_blank())
-ggplotly(bubble) #plotly seems kinda useless
 ```
+
+## explore words
+
+```{r}
+review <- read_csv("../data/review_sample.csv") %>% 
+  clean_names() %>% 
+  select(business_id, everything()) %>% 
+  nest(x1:cool)
+
+businessId = business.dat %>%
+  mutate(categories = as.character(categories)) %>%
+  filter(str_detect(categories, "Restaurants")) %>% 
+  select(business_id)
+review_business = inner_join(businessId, review, by  = "business_id") %>% 
+  unnest()
+
+```
+
