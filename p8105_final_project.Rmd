@@ -208,3 +208,48 @@ review_business = inner_join(businessId, review, by  = "business_id") %>%
 
 ```
 
+## linear regression of reviews
+
+```{r}
+review_length = review_business %>%
+  mutate(text = as.character(text),
+         inspection_num = row_number()) %>%
+  unnest_tokens(word, text) %>% 
+  group_by(inspection_num) %>% 
+  count() 
+```
+
+```{r}
+review$is_positive = as.factor(ifelse(review$stars >= 4, "1", "0"))
+
+#split text, remove stop words
+data("stop_words")
+inspection_words = review_business %>%
+  mutate(text = as.character(text),
+         inspection_num = row_number()) %>% 
+  unnest_tokens(word, text)
+inspection_words = 
+  anti_join(inspection_words, stop_words)
+
+bing_sentiments = get_sentiments("bing")
+#neg and pos numbers
+inspection_sentiments = inspection_words %>% 
+  inner_join(., bing_sentiments) %>% 
+  count(inspection_num, sentiment) %>% 
+  spread(sentiment, n, fill = 0) 
+star = review_business %>%
+  mutate(text = as.character(text),
+         inspection_num = row_number()) %>% 
+  select(inspection_num, stars)
+
+inspection_lm = inner_join(star, inspection_sentiments, by = "inspection_num") %>% 
+  inner_join(., review_length)
+```
+
+## fit a linear model
+
+```{r}
+reviews_reg = lm(stars ~ n + positive + negative, data = inspection_lm)
+summary(reviews_reg)
+```
+
