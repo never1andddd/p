@@ -1,5 +1,6 @@
 ---
 title: "p8105_final_project"
+author: "Siling Li, Xin Zheng, Zhuyu Qiu, Yeyi Zhang"
 output: 
    html_document:
      code_folding: hide
@@ -304,7 +305,7 @@ ggplot(dataWeighted_catestar, aes(x = category, y = stars, label = percent)) +
     geom_text(hjust = 0.4, size = 4) + scale_size(range = c(1, 30), guide = "none") + 
     scale_color_gradient(low = "darkblue", high = "red") + labs(title = "A grid of detailed avg.ratings by category ", 
     x = "Category", y = "Detailed Avg.Ratings") + scale_y_continuous(breaks = seq(1, 
-    5, 0.5)) + theme(legend.title = element_blank())
+    5, 0.5)) + theme(legend.title = element_blank(), axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 ```{r bubble plot2}
@@ -503,7 +504,7 @@ inspection_lm %>%
   scale_x_continuous(labels = scales::percent) +
   scale_y_continuous(labels = scales::comma) +
   #theme_custom()+
-  labs(title=paste("Yelp Review Negativity, by # of Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Total # of Reviews") +
+  labs(title=paste("Yelp Review Positivity, by # of Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Positivity (# Positive Words : # Words)", y="Total # of Reviews") +
   scale_fill_manual(breaks = c("1", "2", "3", "4", "5"), 
                        values = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"))
 ```
