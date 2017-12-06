@@ -272,7 +272,7 @@ time = left_join(c, b)
 ## explore words
 
 ```{r}
-review <- read_csv("../data/review_sample.csv") %>% 
+review <- read_csv("../data/review_sample_5000.csv") %>% 
   clean_names() %>% 
   select(business_id, everything()) %>% 
   nest(x1:cool)
