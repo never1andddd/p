@@ -3,29 +3,24 @@ title: "p8105_final_project"
 output: html_document
 ---
 # Motivations
-Nowadays, customer reviews in social media significantly influence the chances of success of any business. Restaurant customers look for a complete and satisfactory experience regarding food quality, service and they often seek reviews of others when they are choosing where to eat. Yelp offers this information to its users. When users look for a place to eat, they can search for a list of restaurants. Users also get the overall rating(stars) of a restaurant that other customers gave to the restaurant and some reviews about the restaurant.
-  
-Reviews about a restaurant might differ from person to person. They can talk about the quality of food, the service and the environment; they might give a positive review or complain about some specific aspect of their experience. Therefore, reviews are full of information and usually give more information than a simple numeric rating. Fortunately, Yelp receives thousands of reviews each day from all over the world and extracting specific pieces of information from such a big dataset is challenging.
+Nowadays, most customers will search for restaurants on Yelp to decide where to eat for the next meal. The review and rating of a restaurant is of great importance and will help a customer to decide whether this is a good place to eat. Our goal is to find what property makes a restaurant popular and what drives a customer to choose a certain restaurant. Therefore, we choose to explore data of Yelp since it has reviews from customers all over the world.  
+In this project, we have a map of restaurant showing the distribution of restaurants in different categories and some plots to reflect the relationship between customer flow(popularity) and category of a restaurant. We did some regression to help predict customer flow(popularity) of a restaurant. And  We also include some analysis of the review of a restaurant. This might help us to decide what a customer mostly looks for when choosing a restaurant.
 
-#Related work
-Things we discussed in class:  
-Data Wrangling II - Tidy Text http://jeffgoldsmith.com/DSI/tidy_text.html  
-Interactivity - Plot.ly and flexdashboards  http://jeffgoldsmith.com/DSI/plotly_and_dashboards.html  
-Things we learned in Biostatistic Method I: Multiple linear regression
+# Related work
+Things we discussed in class:  Data Wrangling II - Tidy Text http://jeffgoldsmith.com/DSI/tidy_text.html  
+Interactivity - Plot.ly and flexdashboards  http://jeffgoldsmith.com/DSI/plotly_and_dashboards.html  
+Things we learned in Biostatistic Method I: Multiple linear regression  
 
-#Initial questions 
-What questions are you trying to answer? 
-What words are frequently mentioned in the negative and positive reviews? How does the category of a restaurant influence the rating(stars)?  
-How did these questions evolve over the course of the project? 
-What new questions did you consider in the course of your analysis? Can we recommend a restaurant for a customer?
+# Initial questions 
+The question we trying to answer at first is 'what words are frequently mentioned in the negative and positive reviews?' and 'how does the category, location, opening hours and other attributes of a restaurant influence the customer flow?'  
+In the course of our analysis, we are interested in whether we could recommend a restaurant for a customer and give some advice to a restaurant on how to improve their business.
 
 # Data
-The data used in this project is part of the Yelp Dataset Challenge. The dataset consists of a set of JSON files that include business information, reviews, tips, user information and check-ins. Variables in Business are name, location, opening hours, category, average star rating, the number of reviews about the business and a series of attributes like noise level or reservations policy. Review objects list a star rating, the review text, the review date, and the number of votes that the review has received.In this project, we have focused on these two type of objects.  
+The data used in this project is part of the Yelp Dataset Challenge. The dataset consists of a set of JSON files that include business information, reviews, tips, user information and check-ins. Variables in Business are business id, name, location, opening hours, category, average star rating, the number of reviews about the business and a series of attributes like noise level or reservations policy. Review objects contain star rating, the review text, the review date, and the number of votes that the review has received. In this project, we have focused on these two type of objects.  
+Source: https://drive.google.com/drive/folders/190oLdoSyZVnydl9Jxth8G7aKzu3bDgee?usp=sharing  The original review json: https://drive.google.com/file/d/1wbIRfISw2ZW0zy4bZGtnRyhUEOImi5_H/view?usp=sharing  
+The r code to clean the review json(we only extract 5000 reviews from this dataset because the original one is too large to process): https://drive.google.com/file/d/1EXrW_F_GmEq-tQlmtnYkMDwtt-IOA3tq/view?usp=sharing  
+Scraping method: We use the stream_in function in R package "Jsonlite" to read in the data. Then We filtered the business by category to keep only those businesses in the restaurant category and in state of "AZ" (10219). We only extract first 5000 reviews from the original review json.
 
-Source: https://drive.google.com/drive/folders/190oLdoSyZVnydl9Jxth8G7aKzu3bDgee?usp=sharing  
-The original review json: https://drive.google.com/file/d/1wbIRfISw2ZW0zy4bZGtnRyhUEOImi5_H/view?usp=sharing  
-The r code to clean the review json: https://drive.google.com/file/d/1EXrW_F_GmEq-tQlmtnYkMDwtt-IOA3tq/view?usp=sharing  
-Scraping method: We use the stream_in function in package "Jsonlite" to read in the data. Then We filtered the business by category to keep only those businesses in the restaurant category and in state of "AZ" (10219). We only extract first 5000 reviews from the original review json.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -47,12 +42,15 @@ library(janitor)
 library(plotly)
 ```
 
-# Getting Data of Restaurant in business.json
+# Data clean
+For business json: 1. We read in the json file 2. We extract price range from nested column "attributes" and get rid of other attributes 3. We obtain the opening hours of a restaurant on weekdays and weekends 4. We assign a category to a restaurant base on the frequency of the category.
+For review json: 1. We read in the review csv 2. We broke review text into words 3.We remove meaningless words using stop word in R package Tidytext 
+## Getting Data of Restaurant in AZ from business.json
 ```{r,message = FALSE , warning = FALSE }
+# read in the business.json
 business <- stream_in(file("../data/business.json"))
 
-
-# specificly we are only interested in the covariate price in the attributes
+# specificly we are only interested in the covariate 'price' in the attributes column
 price = select(business$attributes,RestaurantsPriceRange2)
 
 business_no_attri = select(business,-attributes,-hours)
@@ -67,11 +65,11 @@ rest.dat = business.dat %>%
   select(business_id)
 
 rest.dat = inner_join(rest.dat,business.dat)
-
+# the rest.dat contains only restaurants in Arizona 
 
 ```
 
-#data clean-business time
+## Getting the opening hours of a restaurant in AZ
 ```{r buisness time}
 business_time =  business %>% 
   select(business_id) %>% 
@@ -150,16 +148,17 @@ time = left_join(c, b) %>%
   select(weekdays,weekend,business_id)
 
 cate.dat = inner_join(rest.dat,time,by="business_id")
+# cate.dat contains the restaurants in Arizona with variables in rest.dat and their opening hours on weekdays and weekend.
 ```
 
 
-# explore the categories of restaurants
-## a rough preview of data
+## Assign a category to a restaurant
+### a rough preview of data
 ```{r}
 cate.dat = cate.dat %>%
   unnest(categories)
 
-# get an overview of categories
+# get an overview of categories, for simplicity, we are only showing 50 categories
 cate.dat %>%
   count(categories, sort = TRUE) %>%
   top_n(50)%>%
@@ -168,51 +167,56 @@ cate.dat %>%
   geom_bar(stat = "identity", fill = "blue", alpha = .6) + 
   coord_flip()
 ```
-
+  
  We notice that:
  1. 'Restaurants', 'food', 'fast food', 'bars', 'sports bars', 'Event Planning & Serving' gives no specific information of what a restaurant serves and will cause a restaurant to have several categories. Therefore, we need to remove them.  
  2. Category 'bars' and 'nightlife' are somewhat overlaid. Therefore, we remove 'night life'.  
 
-## data clean of category
+### Extract top 20 common categories for simplicity of analysis
 ```{r}
+# remove categories that do not provide useful information of what a restaurant serves
 categories <- c('Restaurants','Food','Nightlife','Event Planning & Services','Sports Bars','Bars','Fast Food')
 stop_cates = data.frame(categories) %>%
   mutate(categories = as.character(categories))
 
-cate.dat1 = cate.dat
 cate.dat = 
   anti_join(cate.dat, stop_cates)
   
+# categories dataset contains top 20 common categories   
 categories = cate.dat %>%
   count(categories, sort = TRUE) %>%
 # omit categories with few restaurants, this is a trade-off because we might lose some restaurant, but we will get rid of some noise too
   top_n(20)
 
-# get an overview of categories
+# get an overview of categories dataset
 categories %>%
   mutate(categories = fct_reorder(categories, n)) %>% 
   ggplot(aes(x = categories, y = n)) + 
   geom_bar(stat = "identity", fill = "blue", alpha = .6) + 
   coord_flip()
+# We could see that the left categories all provide specific information for a restaurant
 
+# final.dat dataset contains restaurants in top 20 common categories, but a restaurant might have multiple categories
 final.dat = inner_join(categories,cate.dat) 
 final.dat %>%
   unique() %>%
   distinct(business_id)
 
-# from this table we find there are many restaurants with multiple categories, 
-# assign one category with the highest frequency to each restaurant
+
+# assign the category with the highest frequency to each restaurant
 final.dat = final.dat %>%
   group_by(business_id) %>%
   mutate(category=categories[1],n=n[1])%>%
   ungroup()%>%
   select(-categories)%>%
   unique()
-  
-
+#  
 ```
+## Conclusion
+Comparing to the original dataset, in final.dat, each restaurant is assigned a category and opening hours on weekdays and weekends, the nested columns "attributes" and "opening hours" are removed. We will use for the visualization and analysis of data.
 
-# a map of restaurant 
+# Exploratory analysis of business json (Visualization)
+## A map of restaurants showing the distribution of categories 
 ```{r}
 final.dat %>%
   mutate(text_label = str_c('Name:',name,"\nPostal code: ", postal_code, '\nAddress: ', address, '\nCategory: ', category)) %>% 
@@ -221,8 +225,10 @@ final.dat %>%
           color = ~category,
           text = ~text_label)
 
-```
-# a boxplot showing the distribution of review count of 10 most common categories
+``` 
+### Analysis 
+
+## A boxplot showing the distribution of review count of 10 most common categories
 ```{r}
 # We’re going to show only 10 categories with the most restaurants
 common_category =
@@ -239,15 +245,18 @@ inner_join(final.dat, common_category,
           colors = "Set2")
 
 ```
+### Analysis
 
-# a bar chart showing the number of restaurant in each category
+## A bar chart showing the number of restaurants in each category
 ```{r}
 final.dat%>% 
   mutate(category = fct_reorder(category, n)) %>% 
   plot_ly(x = ~category, y = ~n, color = ~category, type = "bar")
 
 ```
+### Analysis 
 
+## Bubble plot showing the distribution of ratings across different categories
 ```{r bubble plot}
 #A grid of detailed average ratings by categories
 #Basically, the average review rating scores in each state was reclassified from 1.0 to 5.0 by 0.5 increase. For visualization purpose, percentage of rating score is weighted.
@@ -292,7 +301,7 @@ ggplot(dataWeighted_city, aes(x = city, y = stars, label = percent)) +
 
 
 ```
-
+### Analysis
 **Bubble Plot"
 Different colors represent different rating levels.
 The number in the bubble represents the precentage of the specific rating level and this percentage can also be explained by the bubble size.
@@ -330,8 +339,8 @@ ggplot(dataWeighted_city, aes(x = city, y = stars, label = percent)) +
 ```
 
 
-## Linear Regression of business
-
+# Exploratory statistical analysis of business json
+## Regression
 
 
 ## explore words
