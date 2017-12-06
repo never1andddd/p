@@ -345,7 +345,17 @@ ggplot(dataWeighted_city, aes(x = city, y = stars, label = percent)) +
 
 # Exploratory statistical analysis of business json
 ## Regression
+## Analysis 
 
+# Exploratory analysis of review csv (visulization)
+## bar chart
+## density plot
+## word cloud 
+
+# Exploratory statistical analysis of review csv 
+
+## Regression
+## Analysis
 
 ## explore words
 
@@ -622,5 +632,6 @@ In this linear model, we consider reviews as the outcome and try to find the ass
 
 In addition, through t test, we test the difference of business hours between weekdays and weekends and their business hours are significantly different.
 
-
+# Discussion
+What were your findings? Are they what you expect? What insights into the data can you make?
 
