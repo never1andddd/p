@@ -48,7 +48,7 @@ library(plotly)
 ```
 
 # Getting Data of Restaurant in business.json
-```{r}
+```{r,message = FALSE , warning = FALSE }
 business <- stream_in(file("../data/business.json"))
 
 
@@ -168,6 +168,7 @@ cate.dat %>%
   geom_bar(stat = "identity", fill = "blue", alpha = .6) + 
   coord_flip()
 ```
+
  We notice that:
  1. 'Restaurants', 'food', 'fast food', 'bars', 'sports bars', 'Event Planning & Serving' gives no specific information of what a restaurant serves and will cause a restaurant to have several categories. Therefore, we need to remove them.  
  2. Category 'bars' and 'nightlife' are somewhat overlaid. Therefore, we remove 'night life'.  
@@ -178,6 +179,7 @@ categories <- c('Restaurants','Food','Nightlife','Event Planning & Services','Sp
 stop_cates = data.frame(categories) %>%
   mutate(categories = as.character(categories))
 
+cate.dat1 = cate.dat
 cate.dat = 
   anti_join(cate.dat, stop_cates)
   
@@ -290,6 +292,7 @@ ggplot(dataWeighted_city, aes(x = city, y = stars, label = percent)) +
 
 
 ```
+
 **Bubble Plot"
 Different colors represent different rating levels.
 The number in the bubble represents the precentage of the specific rating level and this percentage can also be explained by the bubble size.
@@ -360,7 +363,7 @@ review_length = review_business %>%
 ```
 
 ```{r}
-review$is_positive = as.factor(ifelse(review$stars >= 4, "1", "0"))
+#review$is_positive = as.factor(ifelse(review$stars >= 4, "1", "0"))
 
 #split text, remove stop words
 data("stop_words")
@@ -451,7 +454,7 @@ inspection_lm %>%
 ```
 
 ## Negativity Density
-```{r Positivity Density}  
+```{r Negativity Density}  
 inspection_lm %>%
   filter(negative != 0) %>%
   mutate(s =stars,
@@ -492,7 +495,7 @@ ggplot(aes(fill=as.factor(stars), color=as.factor(stars), ymax=ymax, ymin=ymin, 
 
 
 ##wordcloud
-```{r wordcloud}
+```{r wordcloud, eval=FALSE}
 
 count_stop_words <- function(x) {
 	word_array <- strsplit(as.character(x)," ")[[1]]
@@ -600,6 +603,7 @@ anova(mult.fit3,mult.fit1)
 res<-t.test(model1$weekdays, model1$weekend, var.equal=FALSE, paired=FALSE)               # var.equal=FALSE is the default, so no need to specifically write it.
 res
 ```
+
 **Conclusion---linear regression**
 In this linear model, we consider reviews as the outcome and try to find the associations among those variables. However, we find the review variable is not normally distributed, so we transfrom it into log_review. At first, we clean the linear data and choose three most categories---bars, restaurants and food. The we use backward stepwise to build the model. Then, we get "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend" model. In this model, city stars and catogory predictors are categorical and "weekdays","weekends" are continuous. However, in summary and general ANOVA Test, we find the coefficient of weekend are not significant. In this way, we use partial anova test, we assume that the null hypothesis is "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays" and find the p-value is greater than 0.05 and we fail to reject null hypothesis and choose the small model. And this also satisfies "parsimony". 
 
