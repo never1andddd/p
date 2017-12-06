@@ -374,6 +374,67 @@ reviews_reg = lm(stars ~ n + positive + negative, data = inspection_lm)
 summary(reviews_reg)
 ```
 
+# Negativity Bar Chart
+```{r}
+library(ggthemes)
+inspection_lm %>%
+  filter(negative != 0) %>%
+  mutate(stars = factor(stars),
+         percent_neg = round((negative)/n,digits = 2)) %>%
+  select(stars, percent_neg) %>% 
+  group_by(percent_neg, stars) %>% 
+  count() %>% 
+ ggplot(aes(x = percent_neg, y = n, fill = stars)) +
+  geom_col() +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::comma) +
+  #theme_custom()+
+  labs(title=paste("Yelp Review Negativity, by # of Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Total # of Reviews") +
+  scale_fill_manual(breaks = c("1", "2", "3", "4", "5"), 
+                       values = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"))
+```
+
+# Negativity Density
+```{r Positivity Density}  
+inspection_lm %>%
+  filter(negative != 0) %>%
+  mutate(s =stars,
+    percent_neg = round((negative)/n,digits = 2)) %>%
+ggplot(aes(x=percent_neg, fill=as.factor(stars), color=as.factor(stars), y=..density..)) +
+  geom_density(alpha = 1, position="fill") +
+  scale_x_continuous(limits=c(0,0.35), label = scales::percent) +
+  scale_y_continuous(label = scales::comma) +
+  theme(legend.title = element_blank(), legend.position="top", legend.direction="horizontal", legend.key.width=unit(0.5, "cm"), legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"), panel.margin=element_blank()) +
+  labs(title=paste("Yelp Negativity Proportion, by # Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Proportion of Reviews") +
+  scale_fill_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
+  scale_color_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) 
+
+```
+
+
+```{r donut charts}
+ data_reviews_agg <- inspection_lm %>%
+ 	group_by(stars) %>%
+ 	summarize(count = n()) %>%
+ 	mutate(fraction = count / sum(count),
+ 			ymax = cumsum(fraction),
+ 			ymin = c(0, head(ymax, n=-1)))
+rank_colors = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4")
+ 
+ggplot(aes(fill=as.factor(stars), color=as.factor(stars), ymax=ymax, ymin=ymin, xmax=5, xmin=4), data=data_reviews_agg) +
+    geom_rect(color="white") +
+     coord_polar(theta="y") +
+     annotate("text", label = paste(format(data_reviews_agg$fraction * 100, digits=2),"%",sep=''), x=rep(6,5), y=(data_reviews_agg$ymin + data_reviews_agg$ymax)/2, col=rank_colors, size=3) +
+     xlim(c(0, 6)) +
+ theme(panel.grid=element_blank(), axis.text=element_blank(), axis.ticks=element_blank(), panel.background=element_blank(), axis.title.x = element_blank(), axis.title.y=element_blank(),legend.title = element_blank(),  legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"),panel.border= element_blank()) +
+     labs(title="Customized ring plot") +
+     scale_fill_manual(values=rank_colors, labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
+  scale_color_manual(values=rank_colors, labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
+     annotate("text", x = 0, y = 0, label = "2014", col="#1a1a1a", family="Source Sans Pro Light", size=11)
+
+```
+
+
 ##wordcloud
 ```{r wordcloud}
 
