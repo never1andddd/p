@@ -44,6 +44,88 @@ rest.dat = business.dat %>%
 # review <- stream_in(file("../data/review.json"))
 ```
 
+#data clean-business time
+```{r buisness time}
+business_time =  business %>% 
+  select(business_id) %>% 
+  rowid_to_column()
+hours = business$hours %>% 
+  rowid_to_column()
+
+businesstime = left_join(business_time, hours)%>%
+  na.omit()%>%
+  separate(Monday,into = c("open1","close1"), sep = "-")%>%
+  mutate(open1 = str_replace(open1, ":", "."),
+         close1 = str_replace(close1, ":", ".") )
+  
+businesstime = businesstime%>%
+  separate(Tuesday,into = c("open2","close2"), sep = "-")%>%
+  mutate(open2 = str_replace(open2, ":", "."),
+         close2 = str_replace(close2, ":", ".") )
+
+businesstime = businesstime%>%
+  separate(Wednesday,into = c("open3","close3"), sep = "-")%>%
+  mutate(open3 = str_replace(open3, ":", "."),
+         close3 = str_replace(close3, ":", ".") )
+
+businesstime = businesstime%>%
+  separate(Thursday,into = c("open4","close4"), sep = "-")%>%
+  mutate(open4 = str_replace(open4, ":", "."),
+         close4 = str_replace(close4, ":", ".") )
+
+businesstime = businesstime%>%
+  separate(Friday,into = c("open5","close5"), sep = "-")%>%
+  mutate(open5 = str_replace(open4, ":", "."),
+         close5 = str_replace(close4, ":", ".") )
+
+businesstime = businesstime%>%
+  separate(Saturday,into = c("open6","close6"), sep = "-")%>%
+  mutate(open6 = str_replace(open6, ":", "."),
+         close6 = str_replace(close6, ":", ".") )
+
+businesstime = businesstime%>%
+  separate(Sunday,into = c("open7","close7"), sep = "-")%>%
+  mutate(open7 = str_replace(open7, ":", "."),
+         close7 = str_replace(close7, ":", ".") )
+
+
+
+library(magrittr)
+cols = c(3:16)
+businesstime[,cols] %<>% lapply(function(x) as.numeric(as.character(x)))
+
+time = businesstime%>%
+  mutate(mon = close1-open1,
+         tue = close2 -open2,
+         wed = close3-open3,
+         thurs = close4 -open4,
+         fri = close5-open5,
+         sat = close6-open6,
+         sun = close7-open7)
+
+z=function(x){
+  if(is.numeric(x)){
+    ifelse(x<0,x+24,x)
+  } 
+}
+
+
+a = time %>% select(-rowid, -business_id)
+ b = map_df(a,z)
+
+b=b%>%
+  rowid_to_column()
+c = time%>%
+  select(rowid, business_id)
+
+time = left_join(c, b) %>%
+  mutate(weekdays = (mon+tue+wed+thurs+fri)/5,weekend= (sat+sun)/2) %>%
+  select(weekdays,weekend,business_id)
+
+cate.dat = inner_join(business.dat,time,by="business_id")
+```
+
+
 # explore the categories of restaurants
 ## a rough preview of data
 ```{r}
@@ -193,80 +275,7 @@ ggplot(dataWeighted_city, aes(x = city, y = stars, label = percent)) +
 
 
 ## Linear Regression of business
-```{r buisness time}
-business_time =  business %>% 
-  select(business_id) %>% 
-  rowid_to_column()
-hours = business$hours %>% 
-  rowid_to_column()
 
-businesstime = left_join(business_time, hours)%>%
-  na.omit()%>%
-  separate(Monday,into = c("open1","close1"), sep = "-")%>%
-  mutate(open1 = str_replace(open1, ":", "."),
-         close1 = str_replace(close1, ":", ".") )
-  
-businesstime = businesstime%>%
-  separate(Tuesday,into = c("open2","close2"), sep = "-")%>%
-  mutate(open2 = str_replace(open2, ":", "."),
-         close2 = str_replace(close2, ":", ".") )
-
-businesstime = businesstime%>%
-  separate(Wednesday,into = c("open3","close3"), sep = "-")%>%
-  mutate(open3 = str_replace(open3, ":", "."),
-         close3 = str_replace(close3, ":", ".") )
-
-businesstime = businesstime%>%
-  separate(Thursday,into = c("open4","close4"), sep = "-")%>%
-  mutate(open4 = str_replace(open4, ":", "."),
-         close4 = str_replace(close4, ":", ".") )
-
-businesstime = businesstime%>%
-  separate(Friday,into = c("open5","close5"), sep = "-")%>%
-  mutate(open5 = str_replace(open4, ":", "."),
-         close5 = str_replace(close4, ":", ".") )
-
-businesstime = businesstime%>%
-  separate(Saturday,into = c("open6","close6"), sep = "-")%>%
-  mutate(open6 = str_replace(open6, ":", "."),
-         close6 = str_replace(close6, ":", ".") )
-
-businesstime = businesstime%>%
-  separate(Sunday,into = c("open7","close7"), sep = "-")%>%
-  mutate(open7 = str_replace(open7, ":", "."),
-         close7 = str_replace(close7, ":", ".") )
-```
-
-```{r business time}
-library(magrittr)
-cols = c(3:16)
-businesstime[,cols] %<>% lapply(function(x) as.numeric(as.character(x)))
-
-time = businesstime%>%
-  mutate(mon = close1-open1,
-         tue = close2 -open2,
-         wed = close3-open3,
-         thurs = close4 -open4,
-         fri = close5-open5,
-         sat = close6-open6,
-         sun = close7-open7)
-
-z=function(x){
-  if(is.numeric(x)){
-    ifelse(x<0,x+24,x)
-  } 
-}
-
-
-a = time %>% select(-rowid, -business_id)
- b = map_df(a,z)
-b=map(time$close2,z)
-b=b%>%
-  rowid_to_column()
-c = time%>%
-  select(rowid, business_id)
-time = left_join(c, b)
-```
 
 
 ## explore words
