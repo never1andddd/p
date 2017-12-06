@@ -206,10 +206,6 @@ categories %>%
 
 # final.dat dataset contains restaurants in top 20 common categories, but a restaurant might have multiple categories
 final.dat = inner_join(categories,cate.dat) 
-final.dat %>%
-  unique() %>%
-  distinct(business_id)
-
 
 # assign the category with the highest frequency to each restaurant
 final.dat = final.dat %>%
@@ -218,10 +214,15 @@ final.dat = final.dat %>%
   ungroup()%>%
   select(-categories)%>%
   unique()
-#  
+
+# get an overview of categories in final.dat
+final.dat %>%  
+select(-n) %>%
+count(category, sort = TRUE)
 ```
 ### Conclusion of the data clean of business json 
-Comparing to the original dataset, in final.dat, each restaurant is assigned a category and opening hours on weekdays and weekends, the nested columns "attributes" and "opening hours" are removed. We will use for the visualization and analysis of data.
+Comparing to the original dataset, in final.dat, each restaurant is assigned a category and opening hours on weekdays and weekends, the nested columns "attributes" and "opening hours" are removed. We will use for the visualization and analysis of data. For the order of common categories, the order of top 5 categories(American(Traditional), Mexican, Sandwiches, American(New)) remains unchanged. However, the latter ones changed because some restaurant have multiple categories and the less common ones are dropped.
+
 ## Review json
 
 
@@ -237,7 +238,15 @@ final.dat %>%
           text = ~text_label)
 
 ``` 
+## A map of sandwiches restaurants
+```{r}
+final.dat %>%
+filter(category=="Sandwiches") %>%
+mutate(text_label = str_c('Name:',name,"\nPostal code: ", postal_code, '\nAddress: ', address, '\nCategory: ', category))%>%   
+plot_ly(x = ~longitude, y = ~latitude, type = "scatter", mode = "markers",alpha = 0.5, color = ~category, text = ~text_label)
+``` 
 ### Analysis 
+On x-axis is the longitude of a restaurant, on y-axis is the latitude of a restaurant. We visualize the distribution of restaurant and use different colour for different category. On the map, we can see that most restaurants serve American food, sandwiches, pizza and mexican food. Some restaurant might be masked because of the overlying of the location. Therefore, we then choose to show the map of sandwiches restaurant to get a vivid view of location. The restaurants tend to cluster around some point. This informs us that location of a restaurant might influence the business.This plot will serve as an interactivity plot on our website. Users could choose the category they want to try and restrict the range of rating and price.
 
 ## A boxplot showing the distribution of review count of 10 most common categories
 ```{r}
@@ -251,21 +260,28 @@ common_category =
 
 inner_join(final.dat, common_category,
              by = "category") %>% 
-  mutate(category = fct_reorder(category, review_count)) %>% 
+   group_by(category) %>%  
+   mutate(median_review = median(review_count)) %>%  
+   ungroup()%>%  
+   mutate(category = fct_reorder(category, median_review)) %>% 
   plot_ly(y = ~review_count, color = ~category, type = "box",
           colors = "Set2")
 
 ```
 ### Analysis
+From the box plot, we could obtain that restaurant serving burgers might have lowest number of review_count. The range of number of review_count of American(New) restaurants are biggest. The median of number of review of sushi bars ranks highest among the categories. Overall, most review_count are around 100. However, we could see many outliers around 500 - 1000 in each categories indicating some restaurants might enjoy great popularity.
 
-## A bar chart showing the number of restaurants in each category
+## A bar chart showing the mean of number of review_count in each category
 ```{r}
-final.dat%>% 
-  mutate(category = fct_reorder(category, n)) %>% 
-  plot_ly(x = ~category, y = ~n, color = ~category, type = "bar")
-
+final.dat%>%   
+group_by(category) %>%  
+mutate(mean_review = round(mean(review_count),digits=0)) %>%  
+ungroup()%>%  
+mutate(category = fct_reorder(category, mean_review)) %>%   
+plot_ly(x = ~category, y = ~mean_review, color = ~category, type = "bar")
 ```
 ### Analysis 
+In this bar chart, we could see that Seafood and Sushi restaurants have most mean number of reviews. This is surprising because seafood restaurants is not among the most common restaurants. This might indicate that people tend to go to restaurants that are not so common around the area.   
 
 ## Bubble plot showing the distribution of ratings across different categories
 ```{r bubble plot}
@@ -314,8 +330,7 @@ ggplot(dataWeighted_city, aes(x = city, y = stars, label = percent)) +
 
 
 ```
-### Analysis
-**Bubble Plot"
+### Analysis 
 Different colors represent different rating levels.
 The number in the bubble represents the precentage of the specific rating level and this percentage can also be explained by the bubble size.
 
