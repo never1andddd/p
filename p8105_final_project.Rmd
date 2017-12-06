@@ -530,4 +530,80 @@ library(png)
 image_1star = readPNG("../data/words-1star.png") 
 image_5star = readPNG("../data/words-5star.png") 
 ```
+#linear regression
+
+```{r model 3 variables selction}
+linear = cate.dat1 %>%
+  mutate(categories = str_replace(categories,"c\\(","")) %>%
+  unnest_tokens(category, categories) %>%
+  select(-neighborhood)
+
+mod.categories = linear %>%
+  count(category, sort = TRUE) %>%
+  top_n(3)
+
+mod.final = inner_join(mod.categories,linear) 
+
+mod.final = mod.final %>%
+  dplyr::filter(city == "Phoenix"|city == "Scottsdale"|city =="Mesa")
+
+model = mod.final %>%
+  dplyr::select(stars, category,city,review_count, RestaurantsPriceRange2,weekdays,weekend) %>%
+  dplyr::mutate(category = as.factor(category),
+         city = as.factor(city),
+         stars = as.factor(stars))
+
+ggplot(model, aes(x = stars)) + 
+  geom_histogram()
+ggplot(model, aes(x = review_count)) + 
+  geom_histogram()
+
+ggplot(model, aes(x = weekdays)) + 
+  geom_histogram()
+  
+ggplot(model, aes(x = weekend)) + 
+  geom_histogram()
+
+model1 = model %>%
+  mutate(log_review = log(review_count)) %>%
+  dplyr::select(-review_count)
+
+ggplot(model1, aes(x = log_review)) + 
+  geom_histogram()
+
+
+
+pairs(model1)
+
+```
+
+```{r}
+model1 = model1%>%
+  na.omit()
+
+mult.fit = lm( log_review~ ., data=model1)
+step(mult.fit, direction='backward')
+summary (mult.fit)
+#lm(formula = log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend, data = model1)
+
+mult.fit1 = lm(log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend, data=model1)
+summary(mult.fit1)
+anova(mult.fit1)
+#However, we find that in significant, p-value of weekend variable is greater than 0.05.
+
+mult.fit3 = lm(log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays, data=model1)
+anova(mult.fit3,mult.fit1)
+
+
+
+
+res<-t.test(model1$weekdays, model1$weekend, var.equal=FALSE, paired=FALSE)               # var.equal=FALSE is the default, so no need to specifically write it.
+res
+```
+**Conclusion---linear regression**
+In this linear model, we consider reviews as the outcome and try to find the associations among those variables. However, we find the review variable is not normally distributed, so we transfrom it into log_review. At first, we clean the linear data and choose three most categories---bars, restaurants and food. The we use backward stepwise to build the model. Then, we get "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend" model. In this model, city stars and catogory predictors are categorical and "weekdays","weekends" are continuous. However, in summary and general ANOVA Test, we find the coefficient of weekend are not significant. In this way, we use partial anova test, we assume that the null hypothesis is "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays" and find the p-value is greater than 0.05 and we fail to reject null hypothesis and choose the small model. And this also satisfies "parsimony". 
+
+In addition, through t test, we test the difference of business hours between weekdays and weekends and their business hours are significantly different.
+
+
 
