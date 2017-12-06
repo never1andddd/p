@@ -405,6 +405,28 @@ ggplot(aes(x=percent_neg, fill=as.factor(stars), color=as.factor(stars), y=..den
 
 ```
 
+##ring plot
+```{r donut charts}
+ data_reviews_agg <- inspection_lm %>%
+ 	group_by(stars) %>%
+ 	summarize(count = n()) %>%
+ 	mutate(fraction = count / sum(count),
+ 			ymax = cumsum(fraction),
+ 			ymin = c(0, head(ymax, n=-1)))
+rank_colors = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4")
+ 
+ggplot(aes(fill=as.factor(stars), color=as.factor(stars), ymax=ymax, ymin=ymin, xmax=5, xmin=4), data=data_reviews_agg) +
+    geom_rect(color="white") +
+     coord_polar(theta="y") +
+     annotate("text", label = paste(format(data_reviews_agg$fraction * 100, digits=2),"%",sep=''), x=rep(6,5), y=(data_reviews_agg$ymin + data_reviews_agg$ymax)/2, col=rank_colors, size=3) +
+     xlim(c(0, 6)) +
+ theme(panel.grid=element_blank(), axis.text=element_blank(), axis.ticks=element_blank(), panel.background=element_blank(), axis.title.x = element_blank(), axis.title.y=element_blank(),legend.title = element_blank(),  legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"),panel.border= element_blank()) +
+     scale_fill_manual(values=rank_colors, labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
+  scale_color_manual(values=rank_colors, labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
+     annotate("text", x = 0, y = 0, label = "ring plot", col="#1a1a1a", family="Source Sans Pro Light", size=11)
+```
+
+We did a proportion ring chart of star rating in reviews. We had expected that the 5-star and 1-star reviews would have the largest proportion. Because people tend to express and share their feelings and experience when they had the most positive or negative experiences.  However, from the ring plot, we can find out the review numbers decrease as the star rating decreases. And 60% of the reviews have 4 or higher star ratings. It seems people are more likely to put in the effort to write a review when having a great dining experience.
 
 ## word cloud 
 ```{r wordcloud, eval=FALSE}
@@ -515,29 +537,6 @@ inspection_lm = inner_join(star, inspection_sentiments, by = "inspection_num") %
 ```{r}
 reviews_reg = lm(stars ~ n + positive + negative, data = inspection_lm)
 summary(reviews_reg)
-```
-
-
-##donut charts
-```{r donut charts}
- data_reviews_agg <- inspection_lm %>%
- 	group_by(stars) %>%
- 	summarize(count = n()) %>%
- 	mutate(fraction = count / sum(count),
- 			ymax = cumsum(fraction),
- 			ymin = c(0, head(ymax, n=-1)))
-rank_colors = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4")
- 
-ggplot(aes(fill=as.factor(stars), color=as.factor(stars), ymax=ymax, ymin=ymin, xmax=5, xmin=4), data=data_reviews_agg) +
-    geom_rect(color="white") +
-     coord_polar(theta="y") +
-     annotate("text", label = paste(format(data_reviews_agg$fraction * 100, digits=2),"%",sep=''), x=rep(6,5), y=(data_reviews_agg$ymin + data_reviews_agg$ymax)/2, col=rank_colors, size=3) +
-     xlim(c(0, 6)) +
- theme(panel.grid=element_blank(), axis.text=element_blank(), axis.ticks=element_blank(), panel.background=element_blank(), axis.title.x = element_blank(), axis.title.y=element_blank(),legend.title = element_blank(),  legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"),panel.border= element_blank()) +
-     scale_fill_manual(values=rank_colors, labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
-  scale_color_manual(values=rank_colors, labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
-     annotate("text", x = 0, y = 0, label = "Customized ring plot", col="#1a1a1a", family="Source Sans Pro Light", size=11)
-
 ```
 
 
