@@ -331,9 +331,124 @@ In the second bubble plot, we choose 10 cities with most restuarants. The rating
 ## Analysis 
 
 # Exploratory analysis of review csv (visulization)
-## bar chart
-## density plot
+## bar chart & density plot
+### Positivity Bar chart
+```{r}
+inspection_lm %>%
+  filter(positive != 0) %>%
+  mutate(stars = factor(stars),
+         percent_pos = round((positive)/n,digits = 2)) %>%
+  select(stars, percent_pos) %>% 
+  group_by(percent_pos, stars) %>% 
+  count() %>% 
+ ggplot(aes(x = percent_pos, y = n, fill = stars)) +
+  geom_col() +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::comma) +
+  #theme_custom()+
+  labs(title=paste("Yelp Review Negativity, by # of Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Total # of Reviews") +
+  scale_fill_manual(breaks = c("1", "2", "3", "4", "5"), 
+                       values = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"))
+```
+
+
+### Positivity Density
+```{r Positivity Density}  
+inspection_lm %>%
+  filter(positive != 0) %>%
+  mutate(s =stars,
+    percent_pos = round((positive)/n,digits = 2)) %>%
+ggplot(aes(x=percent_pos, fill=as.factor(stars), color=as.factor(stars), y=..density..)) +
+  geom_density(alpha = 1, position="fill") +
+  scale_x_continuous(limits=c(0,0.43), label = scales::percent) +
+  scale_y_continuous(label = scales::comma) +
+  theme(legend.title = element_blank(), legend.position="top", legend.direction="horizontal", legend.key.width=unit(0.5, "cm"), legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"), panel.margin=element_blank()) +
+  labs(title=paste("Yelp Positivity Proportion, by # Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Positivity (# Positive Words : # Words)", y="Proportion of Reviews") +
+  scale_fill_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
+  scale_color_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) 
+
+```
+
+### Negativity Bar Chart
+```{r}
+inspection_lm %>%
+  filter(negative != 0) %>%
+  mutate(stars = factor(stars),
+         percent_neg = round((negative)/n,digits = 2)) %>%
+  select(stars, percent_neg) %>% 
+  group_by(percent_neg, stars) %>% 
+  count() %>% 
+ ggplot(aes(x = percent_neg, y = n, fill = stars)) +
+  geom_col() +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::comma) +
+  #theme_custom()+
+  labs(title=paste("Yelp Review Negativity, by # of Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Total # of Reviews") +
+  scale_fill_manual(breaks = c("1", "2", "3", "4", "5"), 
+                       values = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"))
+```
+
+### Negativity Density
+```{r Negativity Density}  
+inspection_lm %>%
+  filter(negative != 0) %>%
+  mutate(s =stars,
+    percent_neg = round((negative)/n,digits = 2)) %>%
+ggplot(aes(x=percent_neg, fill=as.factor(stars), color=as.factor(stars), y=..density..)) +
+  geom_density(alpha = 1, position="fill") +
+  scale_x_continuous(limits=c(0,0.35), label = scales::percent) +
+  scale_y_continuous(label = scales::comma) +
+  theme(legend.title = element_blank(), legend.position="top", legend.direction="horizontal", legend.key.width=unit(0.5, "cm"), legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"), panel.margin=element_blank()) +
+  labs(title=paste("Yelp Negativity Proportion, by # Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Proportion of Reviews") +
+  scale_fill_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
+  scale_color_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) 
+
+```
+
+
 ## word cloud 
+```{r wordcloud, eval=FALSE}
+
+count_stop_words <- function(x) {
+	word_array <- strsplit(as.character(x)," ")[[1]]
+	 
+	return (sum(word_array %in% stop_words))
+}
+
+inspection_words = inspection_words%>% 
+  filter(lapply(word, count_stop_words) < 1)
+
+star1 = inspection_words %>% filter(stars == 1)
+star1_word = star1 %>%
+  group_by(word)%>%
+  count(word,sort = TRUE)
+star5 = inspection_words %>% filter(stars == 5)
+star5_word = star5 %>%
+  group_by(word)%>%
+  count(word,sort = TRUE)
+
+ library(wordcloud)
+pal <- brewer.pal(9, "Reds")
+pal <- pal[-c(1:3)]
+png(filename = "words-1star.png", width = 3000, height = 3000, res= 300)
+wordcloud(toupper(star1_word$word), star1_word$n, scale=c(11,.1), random.order=F, rot.per=.10, max.words=5000, colors=pal, random.color=T)
+
+dev.off()
+
+pal <- brewer.pal(9, "Greens")
+pal <- pal[-c(1:3)]
+png(filename = "words-5star.png", width = 3000, height = 3000, res= 300)
+wordcloud(toupper(star5_word$word), star5_word$n, scale=c(9,.1), random.order=F, rot.per=.10, max.words=5000, colors=pal, random.color=T)
+
+dev.off()
+library(png)
+image_1star = readPNG("../data/words-1star.png") 
+image_5star = readPNG("../data/words-5star.png") 
+```
+
+We analyzed the most frequently used words in 5000 Yelp Reviews by using the word cloud function. When comparing the results between 5-star reviews and 1-star reviews, the difference is apparent. The 5-star reviews contain many instances like “love”, “amazing”, “delicious”, “friendly”. On the contrast, the 1-star reviews use very little positive language, and instead using words like “minutes”, “horrible”, ”worst”, “frozen”, presumably after long and unfortunate waits at the establishment, and the food were not good either. What’s more, comparing the two review word clouds, the  5-star reviews contain more adjectives, while the 1-star reviews contains more nouns.  It seems that people tend to show strong affection when the food is good, and try to warn for potential customers and complain for the issues when the experience is horrible.
+
+
 
 # Exploratory statistical analysis of review csv 
 
@@ -402,79 +517,6 @@ reviews_reg = lm(stars ~ n + positive + negative, data = inspection_lm)
 summary(reviews_reg)
 ```
 
-#Charts
-## Positivity Bar chart
-```{r}
-inspection_lm %>%
-  filter(positive != 0) %>%
-  mutate(stars = factor(stars),
-         percent_pos = round((positive)/n,digits = 2)) %>%
-  select(stars, percent_pos) %>% 
-  group_by(percent_pos, stars) %>% 
-  count() %>% 
- ggplot(aes(x = percent_pos, y = n, fill = stars)) +
-  geom_col() +
-  scale_x_continuous(labels = scales::percent) +
-  scale_y_continuous(labels = scales::comma) +
-  #theme_custom()+
-  labs(title=paste("Yelp Review Negativity, by # of Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Total # of Reviews") +
-  scale_fill_manual(breaks = c("1", "2", "3", "4", "5"), 
-                       values = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"))
-```
-
-
-## Positivity Density
-```{r Positivity Density}  
-inspection_lm %>%
-  filter(positive != 0) %>%
-  mutate(s =stars,
-    percent_pos = round((positive)/n,digits = 2)) %>%
-ggplot(aes(x=percent_pos, fill=as.factor(stars), color=as.factor(stars), y=..density..)) +
-  geom_density(alpha = 1, position="fill") +
-  scale_x_continuous(limits=c(0,0.43), label = scales::percent) +
-  scale_y_continuous(label = scales::comma) +
-  theme(legend.title = element_blank(), legend.position="top", legend.direction="horizontal", legend.key.width=unit(0.5, "cm"), legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"), panel.margin=element_blank()) +
-  labs(title=paste("Yelp Positivity Proportion, by # Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Positivity (# Positive Words : # Words)", y="Proportion of Reviews") +
-  scale_fill_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
-  scale_color_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) 
-
-```
-
-## Negativity Bar Chart
-```{r}
-inspection_lm %>%
-  filter(negative != 0) %>%
-  mutate(stars = factor(stars),
-         percent_neg = round((negative)/n,digits = 2)) %>%
-  select(stars, percent_neg) %>% 
-  group_by(percent_neg, stars) %>% 
-  count() %>% 
- ggplot(aes(x = percent_neg, y = n, fill = stars)) +
-  geom_col() +
-  scale_x_continuous(labels = scales::percent) +
-  scale_y_continuous(labels = scales::comma) +
-  #theme_custom()+
-  labs(title=paste("Yelp Review Negativity, by # of Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Total # of Reviews") +
-  scale_fill_manual(breaks = c("1", "2", "3", "4", "5"), 
-                       values = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"))
-```
-
-## Negativity Density
-```{r Negativity Density}  
-inspection_lm %>%
-  filter(negative != 0) %>%
-  mutate(s =stars,
-    percent_neg = round((negative)/n,digits = 2)) %>%
-ggplot(aes(x=percent_neg, fill=as.factor(stars), color=as.factor(stars), y=..density..)) +
-  geom_density(alpha = 1, position="fill") +
-  scale_x_continuous(limits=c(0,0.35), label = scales::percent) +
-  scale_y_continuous(label = scales::comma) +
-  theme(legend.title = element_blank(), legend.position="top", legend.direction="horizontal", legend.key.width=unit(0.5, "cm"), legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"), panel.margin=element_blank()) +
-  labs(title=paste("Yelp Negativity Proportion, by # Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Proportion of Reviews") +
-  scale_fill_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
-  scale_color_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) 
-
-```
 
 ##donut charts
 ```{r donut charts}
@@ -499,45 +541,6 @@ ggplot(aes(fill=as.factor(stars), color=as.factor(stars), ymax=ymax, ymin=ymin, 
 ```
 
 
-##wordcloud
-```{r wordcloud, eval=FALSE}
-
-count_stop_words <- function(x) {
-	word_array <- strsplit(as.character(x)," ")[[1]]
-	 
-	return (sum(word_array %in% stop_words))
-}
-
-inspection_words = inspection_words%>% 
-  filter(lapply(word, count_stop_words) < 1)
-
-star1 = inspection_words %>% filter(stars == 1)
-star1_word = star1 %>%
-  group_by(word)%>%
-  count(word,sort = TRUE)
-star5 = inspection_words %>% filter(stars == 5)
-star5_word = star5 %>%
-  group_by(word)%>%
-  count(word,sort = TRUE)
-
- library(wordcloud)
-pal <- brewer.pal(9, "Reds")
-pal <- pal[-c(1:3)]
-png(filename = "words-1star.png", width = 3000, height = 3000, res= 300)
-wordcloud(toupper(star1_word$word), star1_word$n, scale=c(11,.1), random.order=F, rot.per=.10, max.words=5000, colors=pal, random.color=T)
-
-dev.off()
-
-pal <- brewer.pal(9, "Greens")
-pal <- pal[-c(1:3)]
-png(filename = "words-5star.png", width = 3000, height = 3000, res= 300)
-wordcloud(toupper(star5_word$word), star5_word$n, scale=c(9,.1), random.order=F, rot.per=.10, max.words=5000, colors=pal, random.color=T)
-
-dev.off()
-library(png)
-image_1star = readPNG("../data/words-1star.png") 
-image_5star = readPNG("../data/words-5star.png") 
-```
 #linear regression
 
 ```{r model 3 variables selction}
