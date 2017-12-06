@@ -509,10 +509,9 @@ ggplot(aes(fill=as.factor(stars), color=as.factor(stars), ymax=ymax, ymin=ymin, 
      annotate("text", label = paste(format(data_reviews_agg$fraction * 100, digits=2),"%",sep=''), x=rep(6,5), y=(data_reviews_agg$ymin + data_reviews_agg$ymax)/2, col=rank_colors, size=3) +
      xlim(c(0, 6)) +
  theme(panel.grid=element_blank(), axis.text=element_blank(), axis.ticks=element_blank(), panel.background=element_blank(), axis.title.x = element_blank(), axis.title.y=element_blank(),legend.title = element_blank(),  legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"),panel.border= element_blank()) +
-     labs(title="Customized ring plot") +
      scale_fill_manual(values=rank_colors, labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
   scale_color_manual(values=rank_colors, labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
-     annotate("text", x = 0, y = 0, label = "2014", col="#1a1a1a", family="Source Sans Pro Light", size=11)
+     annotate("text", x = 0, y = 0, label = "Customized ring plot", col="#1a1a1a", family="Source Sans Pro Light", size=11)
 
 ```
 
