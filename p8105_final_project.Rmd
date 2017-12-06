@@ -41,7 +41,7 @@ rest.dat = business.dat %>%
   filter(str_detect(categories, "Restaurants")) %>%
   filter(state == "AZ") 
 
-# review <- stream_in(file("../data/review.json"))
+
 ```
 
 #data clean-business time
