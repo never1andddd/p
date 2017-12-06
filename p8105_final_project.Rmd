@@ -54,7 +54,7 @@ For business json: 1. We read in the json file 2. We extract price range from ne
 For review json: 1. We read in the review csv 2. We broke review text into words 3.We remove meaningless words using stop word in R package Tidytext 
 ## Business json
 ### Getting Data of Restaurant in AZ from business.json
-```{r, message = FALSE , warning = FALSE }
+```{r, include=FALSE}
 # read in the business.json
 business <- stream_in(file("../data/business.json"))
 
@@ -328,7 +328,143 @@ In the second bubble plot, we choose 10 cities with most restuarants. The rating
 
 # Exploratory statistical analysis of business json
 ## Regression
-## Analysis 
+
+```{r model 3 variables selction}
+linear = cate.dat1 %>%
+  mutate(categories = str_replace(categories,"c\\(","")) %>%
+  unnest_tokens(category, categories) %>%
+  select(-neighborhood)
+
+mod.categories = linear %>%
+  count(category, sort = TRUE) %>%
+  top_n(3)
+
+mod.final = inner_join(mod.categories,linear) 
+
+mod.final = mod.final %>%
+  dplyr::filter(city == "Phoenix"|city == "Scottsdale"|city =="Mesa")
+
+model = mod.final %>%
+  dplyr::select(stars, category,city,review_count, RestaurantsPriceRange2,weekdays,weekend) %>%
+  dplyr::mutate(category = as.factor(category),
+         city = as.factor(city))
+
+par(mar=c(3,3,1,1)) 
+par(mfrow=c(2,3))
+attach(model)
+hist(stars)
+hist(review_count)
+hist(weekdays)
+hist(weekend)
+
+#We find that review_count is not normally distributed, thus we transform it to log_review.
+model1 = model %>%
+  mutate(log_review = log(review_count)) %>%
+  dplyr::select(-review_count)
+par(mfrow = c(1,1))
+ggplot(model1, aes(x = log_review)) + 
+  geom_histogram()
+pairs(model1)
+
+```
+
+Before buidling models, we draw histograms check the assumption about the outcome 'review_count' and several predictors, and we find that review_count is not normally distributed. Thus we transform it into log_review and get relatively normal distribution. And we also draw the plot matrix for all variables to see wether have potentially linear association. And then we will continue to build our models.
+ 
+
+```{r}
+model1 = model1%>%
+  na.omit()%>%
+  mutate(stars = as.factor(stars))
+
+mult.fit = lm( log_review~ ., data=model1)
+step(mult.fit, direction='backward')
+summary (mult.fit)
+#lm(formula = log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend, data = model1)
+
+mult.fit1 = lm(log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend, data=model1)
+summary(mult.fit1)
+anova(mult.fit1)
+#However, we find that in significant, p-value of weekend variable is greater than 0.05.
+
+mult.fit3 = lm(log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays, data=model1)
+anova(mult.fit3,mult.fit1)
+
+par(mar=c(3,3,1,1)) 
+par(mfrow=c(2,2))
+plot(mult.fit3)
+
+res<-t.test(model1$weekdays, model1$weekend, var.equal=FALSE, paired=FALSE)               # var.equal=FALSE is the default, so no need to specifically write it.
+res
+```
+
+## Analysis
+
+In this linear model, we consider reviews as the outcome and try to find the associations among those variables. However, we find the review variable is not normally distributed, so we transfrom it into log_review. At first, we clean the linear data and choose three most categories---bars, restaurants and food. The we use backward stepwise to build the model. Then, we get "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend" model. In this model, city stars and catogory predictors are categorical and "weekdays","weekends" are continuous. However, in summary and general ANOVA Test, we find the coefficient of weekend are not significant. In this way, we use partial anova test, we assume that the null hypothesis is "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays" and find the p-value is greater than 0.05 and we fail to reject null hypothesis and choose the small model. And this also satisfies "parsimony". 
+
+In addition, through t test, we test the difference between business hours of weekdays and weekends and the results shows that their business hours are significantly different.
+
+# Exploratory statistical analysis of review csv 
+## explore words
+
+```{r}
+review <- read_csv("../data/review_sample_5000.csv") %>% 
+  clean_names() %>% 
+  select(business_id, everything()) %>% 
+  nest(x1:cool)
+
+businessId = business.dat %>%
+  mutate(categories = as.character(categories)) %>%
+  filter(str_detect(categories, "Restaurants")) %>% 
+  select(business_id)
+review_business = inner_join(businessId, review, by  = "business_id") %>% 
+  unnest()
+
+```
+
+## Regression
+## Analysis
+
+```{r}
+review_length = review_business %>%
+  mutate(text = as.character(text),
+         inspection_num = row_number()) %>%
+  unnest_tokens(word, text) %>% 
+  group_by(inspection_num) %>% 
+  count() 
+```
+
+```{r}
+#split text, remove stop words
+data("stop_words")
+inspection_words = review_business %>%
+  mutate(text = as.character(text),
+         inspection_num = row_number()) %>% 
+  unnest_tokens(word, text)
+inspection_words = 
+  anti_join(inspection_words, stop_words)
+
+bing_sentiments = get_sentiments("bing")
+#neg and pos numbers
+inspection_sentiments = inspection_words %>% 
+  inner_join(., bing_sentiments) %>% 
+  count(inspection_num, sentiment) %>% 
+  spread(sentiment, n, fill = 0) 
+star = review_business %>%
+  mutate(text = as.character(text),
+         inspection_num = row_number()) %>% 
+  select(inspection_num, stars)
+
+inspection_lm = inner_join(star, inspection_sentiments, by = "inspection_num") %>% 
+  inner_join(., review_length)
+```
+
+## fit a linear model
+
+```{r}
+reviews_reg = lm(stars ~ n + positive + negative, data = inspection_lm)
+summary(reviews_reg)
+```
+
 
 # Exploratory analysis of review csv (visulization)
 ## bar chart & density plot
@@ -449,75 +585,6 @@ image_5star = readPNG("../data/words-5star.png")
 We analyzed the most frequently used words in 5000 Yelp Reviews by using the word cloud function. When comparing the results between 5-star reviews and 1-star reviews, the difference is apparent. The 5-star reviews contain many instances like “love”, “amazing”, “delicious”, “friendly”. On the contrast, the 1-star reviews use very little positive language, and instead using words like “minutes”, “horrible”, ”worst”, “frozen”, presumably after long and unfortunate waits at the establishment, and the food were not good either. What’s more, comparing the two review word clouds, the  5-star reviews contain more adjectives, while the 1-star reviews contains more nouns.  It seems that people tend to show strong affection when the food is good, and try to warn for potential customers and complain for the issues when the experience is horrible.
 
 
-
-# Exploratory statistical analysis of review csv 
-
-## Regression
-## Analysis
-
-## explore words
-
-```{r}
-review <- read_csv("../data/review_sample_5000.csv") %>% 
-  clean_names() %>% 
-  select(business_id, everything()) %>% 
-  nest(x1:cool)
-
-businessId = business.dat %>%
-  mutate(categories = as.character(categories)) %>%
-  filter(str_detect(categories, "Restaurants")) %>% 
-  select(business_id)
-review_business = inner_join(businessId, review, by  = "business_id") %>% 
-  unnest()
-
-```
-
-## linear regression of reviews
-
-```{r}
-review_length = review_business %>%
-  mutate(text = as.character(text),
-         inspection_num = row_number()) %>%
-  unnest_tokens(word, text) %>% 
-  group_by(inspection_num) %>% 
-  count() 
-```
-
-```{r}
-#review$is_positive = as.factor(ifelse(review$stars >= 4, "1", "0"))
-
-#split text, remove stop words
-data("stop_words")
-inspection_words = review_business %>%
-  mutate(text = as.character(text),
-         inspection_num = row_number()) %>% 
-  unnest_tokens(word, text)
-inspection_words = 
-  anti_join(inspection_words, stop_words)
-
-bing_sentiments = get_sentiments("bing")
-#neg and pos numbers
-inspection_sentiments = inspection_words %>% 
-  inner_join(., bing_sentiments) %>% 
-  count(inspection_num, sentiment) %>% 
-  spread(sentiment, n, fill = 0) 
-star = review_business %>%
-  mutate(text = as.character(text),
-         inspection_num = row_number()) %>% 
-  select(inspection_num, stars)
-
-inspection_lm = inner_join(star, inspection_sentiments, by = "inspection_num") %>% 
-  inner_join(., review_length)
-```
-
-## fit a linear model
-
-```{r}
-reviews_reg = lm(stars ~ n + positive + negative, data = inspection_lm)
-summary(reviews_reg)
-```
-
-
 ##donut charts
 ```{r donut charts}
  data_reviews_agg <- inspection_lm %>%
@@ -540,80 +607,6 @@ ggplot(aes(fill=as.factor(stars), color=as.factor(stars), ymax=ymax, ymin=ymin, 
 
 ```
 
-
-#linear regression
-
-```{r model 3 variables selction}
-linear = cate.dat1 %>%
-  mutate(categories = str_replace(categories,"c\\(","")) %>%
-  unnest_tokens(category, categories) %>%
-  select(-neighborhood)
-
-mod.categories = linear %>%
-  count(category, sort = TRUE) %>%
-  top_n(3)
-
-mod.final = inner_join(mod.categories,linear) 
-
-mod.final = mod.final %>%
-  dplyr::filter(city == "Phoenix"|city == "Scottsdale"|city =="Mesa")
-
-model = mod.final %>%
-  dplyr::select(stars, category,city,review_count, RestaurantsPriceRange2,weekdays,weekend) %>%
-  dplyr::mutate(category = as.factor(category),
-         city = as.factor(city))
-
-par(mar=c(3,3,1,1)) 
-par(mfrow=c(2,3))
-attach(model)
-hist(stars)
-hist(review_count)
-hist(weekdays)
-hist(weekend)
-
-#We find that review_count is not normally distributed, thus we transform it to log_review.
-model1 = model %>%
-  mutate(log_review = log(review_count)) %>%
-  dplyr::select(-review_count)
-par(mfrow = c(1,1))
-ggplot(model1, aes(x = log_review)) + 
-  geom_histogram()
-pairs(model1)
-
-```
-
-Before buidling models, we draw histograms check the assumption about the outcome 'review_count' and several predictors, and we find that review_count is not normally distributed. Thus we transform it into log_review and get relatively normal distribution. And we also draw the plot matrix for all variables to see wether have potentially linear association. And then we will continue to build our models.
- 
-
-```{r}
-model1 = model1%>%
-  na.omit()%>%
-  mutate(stars = as.factor(stars))
-
-mult.fit = lm( log_review~ ., data=model1)
-step(mult.fit, direction='backward')
-summary (mult.fit)
-#lm(formula = log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend, data = model1)
-
-mult.fit1 = lm(log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend, data=model1)
-summary(mult.fit1)
-anova(mult.fit1)
-#However, we find that in significant, p-value of weekend variable is greater than 0.05.
-
-mult.fit3 = lm(log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays, data=model1)
-anova(mult.fit3,mult.fit1)
-
-
-
-
-res<-t.test(model1$weekdays, model1$weekend, var.equal=FALSE, paired=FALSE)               # var.equal=FALSE is the default, so no need to specifically write it.
-res
-```
-
-**Conclusion---linear regression**
-In this linear model, we consider reviews as the outcome and try to find the associations among those variables. However, we find the review variable is not normally distributed, so we transfrom it into log_review. At first, we clean the linear data and choose three most categories---bars, restaurants and food. The we use backward stepwise to build the model. Then, we get "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend" model. In this model, city stars and catogory predictors are categorical and "weekdays","weekends" are continuous. However, in summary and general ANOVA Test, we find the coefficient of weekend are not significant. In this way, we use partial anova test, we assume that the null hypothesis is "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays" and find the p-value is greater than 0.05 and we fail to reject null hypothesis and choose the small model. And this also satisfies "parsimony". 
-
-In addition, through t test, we test the difference between business hours of weekdays and weekends and the results shows that their business hours are significantly different.
 
 # Discussion
 What were your findings? Are they what you expect? What insights into the data can you make?
