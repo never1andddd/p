@@ -43,9 +43,10 @@ library(plotly)
 ```
 
 # Data clean
-For business json: 1. We read in the json file 2. We extract price range from nested column "attributes" and get rid of other attributes 3. We obtain the opening hours of a restaurant on weekdays and weekends 4. We assign a category to a restaurant base on the frequency of the category.
+For business json: 1. We read in the json file 2. We extract price range from nested column "attributes" and get rid of other attributes 3. We obtain the opening hours of a restaurant on weekdays and weekends 4. We assign a category to a restaurant base on the frequency of the category.  
 For review json: 1. We read in the review csv 2. We broke review text into words 3.We remove meaningless words using stop word in R package Tidytext 
-## Getting Data of Restaurant in AZ from business.json
+## Business json
+### Getting Data of Restaurant in AZ from business.json
 ```{r,message = FALSE , warning = FALSE }
 # read in the business.json
 business <- stream_in(file("../data/business.json"))
@@ -69,7 +70,7 @@ rest.dat = inner_join(rest.dat,business.dat)
 
 ```
 
-## Getting the opening hours of a restaurant in AZ
+### Getting the opening hours of a restaurant in AZ
 ```{r buisness time}
 business_time =  business %>% 
   select(business_id) %>% 
@@ -152,8 +153,8 @@ cate.dat = inner_join(rest.dat,time,by="business_id")
 ```
 
 
-## Assign a category to a restaurant
-### a rough preview of data
+### Assign a category to a restaurant
+#### a rough preview of data
 ```{r}
 cate.dat = cate.dat %>%
   unnest(categories)
@@ -172,7 +173,7 @@ cate.dat %>%
  1. 'Restaurants', 'food', 'fast food', 'bars', 'sports bars', 'Event Planning & Serving' gives no specific information of what a restaurant serves and will cause a restaurant to have several categories. Therefore, we need to remove them.  
  2. Category 'bars' and 'nightlife' are somewhat overlaid. Therefore, we remove 'night life'.  
 
-### Extract top 20 common categories for simplicity of analysis
+#### Extract top 20 common categories for simplicity of analysis
 ```{r}
 # remove categories that do not provide useful information of what a restaurant serves
 categories <- c('Restaurants','Food','Nightlife','Event Planning & Services','Sports Bars','Bars','Fast Food')
@@ -212,8 +213,11 @@ final.dat = final.dat %>%
   unique()
 #  
 ```
-## Conclusion
+### Conclusion of the data clean of business json 
 Comparing to the original dataset, in final.dat, each restaurant is assigned a category and opening hours on weekdays and weekends, the nested columns "attributes" and "opening hours" are removed. We will use for the visualization and analysis of data.
+## Review json
+
+
 
 # Exploratory analysis of business json (Visualization)
 ## A map of restaurants showing the distribution of categories 
