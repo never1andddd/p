@@ -37,9 +37,12 @@ business.dat = bind_cols(business_no_attri,price)
 
 # for simplicity, we focus on restaurants in state of Arizona(AZ)
 rest.dat = business.dat %>%
-  mutate(categories = as.character(categories)) %>%
+  unnest(categories) %>%
   filter(str_detect(categories, "Restaurants")) %>%
-  filter(state == "AZ") 
+  filter(state == "AZ") %>%
+  select(business_id)
+
+rest.dat = inner_join(rest.dat,business.dat)
 
 
 ```
@@ -129,59 +132,57 @@ cate.dat = inner_join(business.dat,time,by="business_id")
 # explore the categories of restaurants
 ## a rough preview of data
 ```{r}
-cate.dat = rest.dat %>%
-  mutate(categories = str_replace(categories,"c\\(","")) %>%
-  unnest_tokens(category, categories) %>%
-  select(-neighborhood)
+cate.dat = cate.dat %>%
+  unnest(categories)
 
 # get an overview of categories
 cate.dat %>%
-  count(category, sort = TRUE) %>%
+  count(categories, sort = TRUE) %>%
   top_n(50)%>%
-  mutate(category = fct_reorder(category, n)) %>% 
-  ggplot(aes(x = category, y = n)) + 
+  mutate(categories = fct_reorder(categories, n)) %>% 
+  ggplot(aes(x = categories, y = n)) + 
   geom_bar(stat = "identity", fill = "blue", alpha = .6) + 
   coord_flip()
 ```
  We notice that:
- 1. 'Restaurants', 'food', 'sports' gives no further information of what a restaurant serves. Therefore, we need to remove them.  
- 2. Category 'american new' and 'american traditional' are devided into 3 categories namely 'american',
-'new' and 'traditional'. This is redundant and we need to remove 'american' from this dataset.  
- 3. Category 'chicken wings' is devided into 2 categories namely 'chicken' and 'wings'. This is redundant and we need to remove 'chicken' from this dataset. This is same for 'breakfast & brunch' and 'coffee & tea'. We will remove 'brunch' and 'tea' for simplicity.
- 4. Category 'bar' and 'nightlife' are somewhat overlaid. Therefore, we remove 'night life'.  
- 5. Category 'Event Planning & Services' is devided into 3 categories namely 'event', 'planning' and 'services'. These categories gives no further information of what a restaurant serves. Therefore, we need to remove them.  
- 6. 'Bars','fast food' do not give further information of what a restaurant serves and cause a restaurant to have multiple categories, hence are removed. 
+ 1. 'Restaurants', 'food', 'fast food', 'bars', 'sports bars', 'Event Planning & Serving' gives no specific information of what a restaurant serves and will cause a restaurant to have several categories. Therefore, we need to remove them.  
+ 2. Category 'bars' and 'nightlife' are somewhat overlaid. Therefore, we remove 'night life'.  
 
 ## data clean of category
 ```{r}
-category <- c('restaurants','food','american','chicken','nightlife','services','planning','event','sports','brunch','tea','bars','fast')
-stop_cates = data.frame(category) %>%
-  mutate(category = as.character(category))
+categories <- c('Restaurants','Food','Nightlife','Event Planning & Services','Sports Bars','Bars','Fast Food')
+stop_cates = data.frame(categories) %>%
+  mutate(categories = as.character(categories))
 
 cate.dat = 
   anti_join(cate.dat, stop_cates)
   
 categories = cate.dat %>%
-  count(category, sort = TRUE) %>%
+  count(categories, sort = TRUE) %>%
 # omit categories with few restaurants, this is a trade-off because we might lose some restaurant, but we will get rid of some noise too
-  top_n(10)
+  top_n(20)
 
 # get an overview of categories
 categories %>%
-  mutate(category = fct_reorder(category, n)) %>% 
-  ggplot(aes(x = category, y = n)) + 
+  mutate(categories = fct_reorder(categories, n)) %>% 
+  ggplot(aes(x = categories, y = n)) + 
   geom_bar(stat = "identity", fill = "blue", alpha = .6) + 
   coord_flip()
 
-
-# there are some variables that seem to make no sense like 'fast', 'traditional' and 'new'. explanation: 
 final.dat = inner_join(categories,cate.dat) 
 final.dat %>%
   unique() %>%
   distinct(business_id)
 
-# from this table we find there are many restaurants with multiple categories
-# write a loop to assign each restaurant a categorie that is of highest frequency?
+# from this table we find there are many restaurants with multiple categories, 
+# assign one category with the highest frequency to each restaurant
+final.dat = final.dat %>%
+  group_by(business_id) %>%
+  mutate(category=categories[1],n=n[1])%>%
+  ungroup()%>%
+  select(-categories)%>%
+  unique()
+  
 
 ```
 
