@@ -2,6 +2,30 @@
 title: "p8105_final_project"
 output: html_document
 ---
+# Motivations
+Nowadays, customer reviews in social media significantly influence the chances of success of any business. Restaurant customers look for a complete and satisfactory experience regarding food quality, service and they often seek reviews of others when they are choosing where to eat. Yelp offers this information to its users. When users look for a place to eat, they can search for a list of restaurants. Users also get the overall rating(stars) of a restaurant that other customers gave to the restaurant and some reviews about the restaurant.
+  
+Reviews about a restaurant might differ from person to person. They can talk about the quality of food, the service and the environment; they might give a positive review or complain about some specific aspect of their experience. Therefore, reviews are full of information and usually give more information than a simple numeric rating. Fortunately, Yelp receives thousands of reviews each day from all over the world and extracting specific pieces of information from such a big dataset is challenging.
+
+#Related work
+Things we discussed in class:  
+Data Wrangling II - Tidy Text http://jeffgoldsmith.com/DSI/tidy_text.html  
+Interactivity - Plot.ly and flexdashboards  http://jeffgoldsmith.com/DSI/plotly_and_dashboards.html  
+Things we learned in Biostatistic Method I: Multiple linear regression
+
+#Initial questions 
+What questions are you trying to answer? 
+What words are frequently mentioned in the negative and positive reviews? How does the category of a restaurant influence the rating(stars)?  
+How did these questions evolve over the course of the project? 
+What new questions did you consider in the course of your analysis? Can we recommend a restaurant for a customer?
+
+# Data
+The data used in this project is part of the Yelp Dataset Challenge. The dataset consists of a set of JSON files that include business information, reviews, tips, user information and check-ins. Variables in Business are name, location, opening hours, category, average star rating, the number of reviews about the business and a series of attributes like noise level or reservations policy. Review objects list a star rating, the review text, the review date, and the number of votes that the review has received.In this project, we have focused on these two type of objects.  
+
+Source: https://drive.google.com/drive/folders/190oLdoSyZVnydl9Jxth8G7aKzu3bDgee?usp=sharing  
+The original review json: https://drive.google.com/file/d/1wbIRfISw2ZW0zy4bZGtnRyhUEOImi5_H/view?usp=sharing  
+The r code to clean the review json: https://drive.google.com/file/d/1EXrW_F_GmEq-tQlmtnYkMDwtt-IOA3tq/view?usp=sharing  
+Scraping method: We use the stream_in function in package "Jsonlite" to read in the data. Then We filtered the business by category to keep only those businesses in the restaurant category and in state of "AZ" (10219). We only extract first 5000 reviews from the original review json.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -196,7 +220,7 @@ final.dat %>%
           text = ~text_label)
 
 ```
-
+# a boxplot showing the distribution of review count of 10 most common categories
 ```{r}
 # We’re going to show only 10 categories with the most restaurants
 common_category =
@@ -214,15 +238,9 @@ inner_join(final.dat, common_category,
 
 ```
 
+# a bar chart showing the number of restaurant in each category
 ```{r}
-final.dat %>% 
-  mutate(category = fct_reorder(category, n)) %>% 
-  plot_ly(x = ~category, y = ~n, color = ~category, type = "bar")
-```
-
-```{r}
-inner_join(final.dat, common_category,
-             by = "category") %>% 
+final.dat%>% 
   mutate(category = fct_reorder(category, n)) %>% 
   plot_ly(x = ~category, y = ~n, color = ~category, type = "bar")
 
