@@ -125,7 +125,7 @@ time = left_join(c, b) %>%
   mutate(weekdays = (mon+tue+wed+thurs+fri)/5,weekend= (sat+sun)/2) %>%
   select(weekdays,weekend,business_id)
 
-cate.dat = inner_join(business.dat,time,by="business_id")
+cate.dat = inner_join(rest.dat,time,by="business_id")
 ```
 
 
