@@ -374,9 +374,46 @@ reviews_reg = lm(stars ~ n + positive + negative, data = inspection_lm)
 summary(reviews_reg)
 ```
 
-# Negativity Bar Chart
+#Charts
+## Positivity Bar chart
 ```{r}
-library(ggthemes)
+inspection_lm %>%
+  filter(positive != 0) %>%
+  mutate(stars = factor(stars),
+         percent_pos = round((positive)/n,digits = 2)) %>%
+  select(stars, percent_pos) %>% 
+  group_by(percent_pos, stars) %>% 
+  count() %>% 
+ ggplot(aes(x = percent_pos, y = n, fill = stars)) +
+  geom_col() +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::comma) +
+  #theme_custom()+
+  labs(title=paste("Yelp Review Negativity, by # of Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Negativity (# Negative Words : # Words)", y="Total # of Reviews") +
+  scale_fill_manual(breaks = c("1", "2", "3", "4", "5"), 
+                       values = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"))
+```
+
+
+## Positivity Density
+```{r Positivity Density}  
+inspection_lm %>%
+  filter(positive != 0) %>%
+  mutate(s =stars,
+    percent_pos = round((positive)/n,digits = 2)) %>%
+ggplot(aes(x=percent_pos, fill=as.factor(stars), color=as.factor(stars), y=..density..)) +
+  geom_density(alpha = 1, position="fill") +
+  scale_x_continuous(limits=c(0,0.43), label = scales::percent) +
+  scale_y_continuous(label = scales::comma) +
+  theme(legend.title = element_blank(), legend.position="top", legend.direction="horizontal", legend.key.width=unit(0.5, "cm"), legend.key.height=unit(0.25, "cm"), legend.margin=unit(-0.5,"cm"), panel.margin=element_blank()) +
+  labs(title=paste("Yelp Positivity Proportion, by # Stars for", format(nrow(inspection_lm),big.mark=","),"Reviews"), x="% Review Positivity (# Positive Words : # Words)", y="Proportion of Reviews") +
+  scale_fill_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) +
+  scale_color_manual(values=c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"), labels = c("1 Star", "2 Stars", "3 Stars", "4 Stars", "5 Stars")) 
+
+```
+
+## Negativity Bar Chart
+```{r}
 inspection_lm %>%
   filter(negative != 0) %>%
   mutate(stars = factor(stars),
@@ -394,7 +431,7 @@ inspection_lm %>%
                        values = c("burlywood2", "violet", "violetred1", "violetred3", "deeppink4"))
 ```
 
-# Negativity Density
+## Negativity Density
 ```{r Positivity Density}  
 inspection_lm %>%
   filter(negative != 0) %>%
@@ -411,7 +448,7 @@ ggplot(aes(x=percent_neg, fill=as.factor(stars), color=as.factor(stars), y=..den
 
 ```
 
-
+##donut charts
 ```{r donut charts}
  data_reviews_agg <- inspection_lm %>%
  	group_by(stars) %>%
