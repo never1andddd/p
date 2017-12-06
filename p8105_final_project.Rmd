@@ -1,6 +1,8 @@
 ---
 title: "p8105_final_project"
-output: html_document
+output: 
+   html_document:
+     code_folding: hide
 ---
 # Motivations
 Nowadays, most customers will search for restaurants on Yelp to decide where to eat for the next meal. The review and rating of a restaurant is of great importance and will help a customer to decide whether this is a good place to eat. Our goal is to find what property makes a restaurant popular and what drives a customer to choose a certain restaurant. Therefore, we choose to explore data of Yelp since it has reviews from customers all over the world.  
@@ -179,7 +181,7 @@ cate.dat %>%
 categories <- c('Restaurants','Food','Nightlife','Event Planning & Services','Sports Bars','Bars','Fast Food')
 stop_cates = data.frame(categories) %>%
   mutate(categories = as.character(categories))
-
+cate.dat1 = cate.dat
 cate.dat = 
   anti_join(cate.dat, stop_cates)
   
@@ -575,8 +577,7 @@ mod.final = mod.final %>%
 model = mod.final %>%
   dplyr::select(stars, category,city,review_count, RestaurantsPriceRange2,weekdays,weekend) %>%
   dplyr::mutate(category = as.factor(category),
-         city = as.factor(city),
-         stars = as.factor(stars))
+         city = as.factor(city))
 
 ggplot(model, aes(x = stars)) + 
   geom_histogram()
@@ -604,7 +605,8 @@ pairs(model1)
 
 ```{r}
 model1 = model1%>%
-  na.omit()
+  na.omit()%>%
+  mutate(stars = as.factor(stars))
 
 mult.fit = lm( log_review~ ., data=model1)
 step(mult.fit, direction='backward')
@@ -629,7 +631,7 @@ res
 **Conclusion---linear regression**
 In this linear model, we consider reviews as the outcome and try to find the associations among those variables. However, we find the review variable is not normally distributed, so we transfrom it into log_review. At first, we clean the linear data and choose three most categories---bars, restaurants and food. The we use backward stepwise to build the model. Then, we get "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays + weekend" model. In this model, city stars and catogory predictors are categorical and "weekdays","weekends" are continuous. However, in summary and general ANOVA Test, we find the coefficient of weekend are not significant. In this way, we use partial anova test, we assume that the null hypothesis is "log_review ~ stars + category + city + RestaurantsPriceRange2 + weekdays" and find the p-value is greater than 0.05 and we fail to reject null hypothesis and choose the small model. And this also satisfies "parsimony". 
 
-In addition, through t test, we test the difference of business hours between weekdays and weekends and their business hours are significantly different.
+In addition, through t test, we test the difference between business hours of weekdays and weekends and the results shows that their business hours are significantly different.
 
 # Discussion
 What were your findings? Are they what you expect? What insights into the data can you make?
