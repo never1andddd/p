@@ -418,6 +418,8 @@ In this linear model, we consider reviews as the outcome and try to find the ass
 
 In addition, through t test, we test the difference between business hours of weekdays and weekends and the results shows that their business hours are significantly different.
 
+From the diagnostic plots, we can see that the model satisifes the linear assumption and doesn't find many influential outliers.
+
 # Exploratory statistical analysis of review csv 
 ## explore words
 
@@ -480,6 +482,10 @@ reviews_reg = lm(stars ~ n + positive + negative, data = inspection_lm)
 summary(reviews_reg)
 ```
 
+For every positive word, the predicted average star rating given is increased by 0.16 on average (e.g. 16 positive words indicate a 1-star increase)
+For every negative word, the predicted average star rating given is decreased by 0.21 on average (e.g. 21 negative words indicate a 1-star decrease)
+This model explains 30.1% of the variation in the number of stars given in a review. This sounds like a low percentage, but is impressive for such a simple model using unstructured real-world data.
+
 
 # Exploratory analysis of review csv (visulization)
 ## bar chart & density plot
@@ -520,6 +526,8 @@ ggplot(aes(x=percent_pos, fill=as.factor(stars), color=as.factor(stars), y=..den
 
 ```
 
+This histogram of positivity scores shows that 1-star reviews have lower positivity compared to 4 or 5-star reviews. For those reviews whose positivity higher than 10%, The distribution for each star rating is close to a Normal distribution, with each successive rating category peaking at increasing positivity values. And the relative proportion of each star rating reinforces this.
+
 ### Negativity Bar Chart
 ```{r}
 inspection_lm %>%
@@ -556,6 +564,9 @@ ggplot(aes(x=percent_neg, fill=as.factor(stars), color=as.factor(stars), y=..den
 
 ```
 
+The histogram of negative reviews looks much different than the positive one. The chart is heavily skewed right. We can see that 5-star reviews aren’t completely positive all the time, though they have lower negativity than the 1 star reviews. 
+
+At low negativity, the proportions of negative review scores (1-star, 2-stars, 3-stars) and positive review scores (4-stars, 5-stars) are about equal, implying that negative reviews can be just as civil as positive reviews. And then the proportions of negative review scores (1-star, 2-stars, 3-stars) increase as the negativity increase.  High negativity presents mostly in 1-star and 2-star reviews, but also contains 4-star and 5-star reviews. Even 5-star reviews aren’t completely positive all the time.
 
 ## word cloud 
 ```{r wordcloud, eval=FALSE}
@@ -622,6 +633,8 @@ ggplot(aes(fill=as.factor(stars), color=as.factor(stars), ymax=ymax, ymin=ymin, 
 
 ```
 
+### Conclusion of the reviews
+Conclusion:From all the analysis above,  we can conclude that Yelp reviews’ star ratings are are significantly associated. Yelp reviews with 5-star are generally positive while Yelp reviews with 1-star are generally negative. And people having great dining experience are more likely to write reviews on Yelp. Meanwhile, people having bad dining experience are more likely to write longer reviews to complain or warn the potential customers. Language plays a huge role in determining the ratings of reviews, and also knowledge could be applied to many other industries and review websites.
 
 # Discussion
 What were your findings? Are they what you expect? What insights into the data can you make?
