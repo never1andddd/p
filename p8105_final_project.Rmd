@@ -195,7 +195,7 @@ categories %>%
   ggplot(aes(x = categories, y = n)) + 
   geom_bar(stat = "identity", fill = "blue", alpha = .6) + 
   coord_flip()
-# We could see that the left categories all provide specific information for a restaurant
+# We could see that the remaining categories all provide specific information for a restaurant. There are most restaurants with category "American(traditional)" and numbers of restaurant of "Mexican", "Sandwiches" and "Pizza" are close. 
 
 # final.dat dataset contains restaurants in top 20 common categories, but a restaurant might have multiple categories
 final.dat = inner_join(categories,cate.dat) 
